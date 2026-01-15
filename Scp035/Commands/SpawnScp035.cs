@@ -1,5 +1,6 @@
 ﻿using System;
 using CommandSystem;
+using LabApi.Features.Permissions;
 using LabApi.Features.Wrappers;
 using Utils;
 
@@ -16,6 +17,12 @@ public class SpawnScp035 : ICommand, IUsageProvider
 
     public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
     {
+        if (!sender.HasPermissions("scp035.spawn"))
+        {
+            response = "You do not have permission to execute this command!";
+            return false;
+        }
+        
         if (arguments.Count < 2)
         {
             response =

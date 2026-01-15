@@ -44,7 +44,6 @@
         <Reference Include="Assembly-CSharp-firstpass" HintPath="$(sl_references)\Assembly-CSharp-firstpass.dll"/>
         <Reference Include="CommandSystem.Core" HintPath="$(sl_references)\CommandSystem.Core.dll"/>
         <Reference Include="Mirror" HintPath="$(sl_references)\Mirror.dll"/>
-        <Reference Include="ProjectMER" HintPath="$(labapi_plugins)\ProjectMER.dll"/>
         <Reference Include="UncomplicatedCustomRoles" HintPath="$(labapi_plugins)\UncomplicatedCustomRoles-LabAPI.dll"/>
         <Reference Include="UnityEngine.CoreModule" HintPath="$(sl_references)\UnityEngine.CoreModule.dll"/>
         <Reference Include="LabApi" HintPath="$(sl_references)\LabApi.dll"/>
