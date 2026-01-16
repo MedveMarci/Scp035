@@ -11,8 +11,6 @@ public static class ApiManager
 
     internal static void CheckForUpdates()
     {
-        try
-        {
             var name = Scp035.Singleton.Name;
             var currentVersion = Scp035.Singleton.Version;
 
@@ -49,10 +47,8 @@ public static class ApiManager
                     $"{ApiBase}/api/v1/plugin/{Uri.EscapeDataString(name)}/version/{Uri.EscapeDataString(currentVersion.ToString())}");
             var (currentStatusCode, currentMessage) = ParseApiResponse(currentVersionResp);
             if (currentStatusCode != HttpStatusCode.OK)
-            {
-                LogManager.Error($"Recall check failed: {currentStatusCode} - {currentMessage}");
-                return;
-            }
+                LogManager.Debug($"Recall check failed: {currentStatusCode} - {currentMessage}");
+            
 
             var recallRoot = JsonDocument.Parse(currentVersionResp).RootElement;
 
@@ -82,13 +78,7 @@ public static class ApiManager
             if (!currentIsNewerThanRemote) return;
             LogManager.Info(
                 $"You are running a newer version of {name} ({currentVersion}) than {latestRemoteVersion}. This is a development/pre-release build and it can contain errors or bugs.",
-                ConsoleColor.Red);
-        }
-        catch (Exception e)
-        {
-            LogManager.Error("Version check failed.");
-            LogManager.Debug($"Version check failed.\n{e}");
-        }
+                ConsoleColor.DarkMagenta);
     }
 
     private static string GetDownloadUrl(JsonElement root)
