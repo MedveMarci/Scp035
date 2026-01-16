@@ -26,7 +26,7 @@ public class EventHandler : CustomEventsHandler
     private static Pickup _lockerPickup;
     internal static readonly Dictionary<uint, int> Scp035Serials = [];
 
-    public override void OnServerRoundStarted()
+    public void OnPlayersSpawned()
     {
         if (Scp035.Singleton.Config == null)
             return;

@@ -86,8 +86,8 @@ public class Scp035Role : EventCustomRole
     };
 
     public override Vector3 Scale { get; set; } = Vector3.one;
-    public override string SpawnBroadcast { get; set; } = "";
-    public override ushort SpawnBroadcastDuration { get; set; } = 10;
+    public override string SpawnBroadcast { get; set; } = "You have spawned as <color=#C50000>SCP-035</color>.";
+    public override ushort SpawnBroadcastDuration { get; set; } = 5;
     public override string SpawnHint { get; set; } = "";
     public override float SpawnHintDuration { get; set; } = 0;
     public override Dictionary<ItemCategory, sbyte> CustomInventoryLimits { get; set; } = new();
@@ -123,9 +123,11 @@ public class Scp035Role : EventCustomRole
         role.AddModule(typeof(ColorfulNickname), new Dictionary<string, object> { { "color", "#C50000" } });
         role.AddModule(typeof(ColorfulRaName), new Dictionary<string, object> { { "color", "#C50000" } });
         var player = role.Player;
+        player.InfoArea &= ~PlayerInfoArea.UnitName;
+        player.InfoArea &= ~PlayerInfoArea.PowerStatus;
         var scp1344 = Pickup != null ? player.AddItem(Pickup) : player.AddItem(ItemType.SCP1344);
         LogManager.Debug(
-            $"Pickup: {(Pickup != null ? Pickup.ToString() : "null")}, SCP-1344 Item: {(scp1344 != null ? scp1344.ToString() : "null")}");
+            $"Pickup: {(Pickup != null ? "Pickup" : "null")}, SCP-1344 Item: {(scp1344 != null ? scp1344.ToString() : "null")}");
         if (scp1344 != null)
         {
             if (scp1344 is Scp1344Item scp1344Item)
