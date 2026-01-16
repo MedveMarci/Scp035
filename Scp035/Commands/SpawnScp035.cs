@@ -22,7 +22,7 @@ public class SpawnScp035 : ICommand, IUsageProvider
             response = "You do not have permission to execute this command!";
             return false;
         }
-        
+
         if (arguments.Count < 2)
         {
             response =

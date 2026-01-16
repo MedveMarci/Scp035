@@ -8,16 +8,9 @@ namespace Scp035.ApiFeatures;
 
 internal static class LogManager
 {
-    private static bool DebugEnabled => Scp035.Singleton.Config?.Debug ?? false;
     private static readonly List<LogEntry> History = [];
+    private static bool DebugEnabled => Scp035.Singleton.Config?.Debug ?? false;
 
-    private class LogEntry(long timestamp, string level, string message)
-    {
-        public long Timestamp { get; } = timestamp;
-        public string Level { get; } = level;
-        public string Message { get; } = message;
-    }
-    
     public static void Debug(string message)
     {
         History.Add(new LogEntry(DateTimeOffset.Now.ToUnixTimeMilliseconds(), "Debug", message));
@@ -39,36 +32,35 @@ internal static class LogManager
         Logger.Warn(message);
     }
 
-    public static void Error(string message)
+    public static void Error(string message, ConsoleColor color = ConsoleColor.Red)
     {
         History.Add(new LogEntry(DateTimeOffset.Now.ToUnixTimeMilliseconds(), "Error", message));
-        Logger.Raw($"[ERROR] [{Scp035.Singleton.Name}] {message}", ConsoleColor.Red);
+        Logger.Raw($"[ERROR] [{Scp035.Singleton.Name}] {message}", color);
     }
-    
+
     public static (string logResult, bool success) GetLogHistory()
     {
         var stringBuilder = StringBuilderPool.Shared.Rent();
         foreach (var log in History)
-                stringBuilder.AppendLine($"[{DateTimeOffset.FromUnixTimeMilliseconds(log.Timestamp):yyyy-MM-dd HH:mm:ss}] [{log.Level}] {log.Message}");
+            stringBuilder.AppendLine(
+                $"[{DateTimeOffset.FromUnixTimeMilliseconds(log.Timestamp):yyyy-MM-dd HH:mm:ss}] [{log.Level}] {log.Message}");
 
         if (Scp035.Singleton.Config?.Scp035Role != null)
         {
             stringBuilder.AppendLine("\n--- SCP-035 CustomRole ---\n");
             stringBuilder.Append($"{YamlConfigParser.Serializer.Serialize(Scp035.Singleton.Config.Scp035Role)}");
         }
-        
-        var httpTask = ApiCommunicator.SendLogsAsync(StringBuilderPool.Shared.ToStringReturn(stringBuilder));
-    
-        string result;
-        try
-        {
-            result = httpTask.GetAwaiter().GetResult();
-        }
-        catch (Exception e)
-        {
-            Debug($"GetLogHistory SendLogsAsync failed: {e}");
-            return ("Log history request failed to complete.", false);
-        }
-        return (result != null ? $"Log history sent, received id: {result}" : "Log history request completed without an id.", true);
+
+        var logId = ApiManager.SendLogsAsync(StringBuilderPool.Shared.ToStringReturn(stringBuilder));
+        return logId == null
+            ? ("Failed to send LogHistory.", false)
+            : ($"Log history sent, received id: {logId}", true);
+    }
+
+    private class LogEntry(long timestamp, string level, string message)
+    {
+        public long Timestamp { get; } = timestamp;
+        public string Level { get; } = level;
+        public string Message { get; } = message;
     }
 }

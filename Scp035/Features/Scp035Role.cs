@@ -21,6 +21,7 @@ namespace Scp035.Features;
 #nullable enable
 public class Scp035Role : EventCustomRole
 {
+    [YamlIgnore] private SummonedCustomRole? _lastAliveRole;
     [YamlIgnore] public override int Id { get; set; } = 35;
 
     [YamlIgnore] public override string Name { get; set; } = "<color=#C50000>SCP-035</color>";
@@ -114,8 +115,7 @@ public class Scp035Role : EventCustomRole
 
     [YamlIgnore] public override bool IgnoreSpawnSystem { get; set; } = true;
     [YamlIgnore] public Pickup? Pickup { get; set; }
-    [YamlIgnore] private SummonedCustomRole? _lastAliveRole;
-    
+
     public override void OnSpawned(SummonedCustomRole role)
     {
         LogManager.Debug("Spawning SCP-035 role for player " + role.Player.Nickname);
@@ -124,13 +124,14 @@ public class Scp035Role : EventCustomRole
         role.AddModule(typeof(ColorfulRaName), new Dictionary<string, object> { { "color", "#C50000" } });
         var player = role.Player;
         var scp1344 = Pickup != null ? player.AddItem(Pickup) : player.AddItem(ItemType.SCP1344);
-        LogManager.Debug($"Pickup: {(Pickup != null ? Pickup.ToString() : "null")}, SCP-1344 Item: {(scp1344 != null ? scp1344.ToString() : "null")}");
+        LogManager.Debug(
+            $"Pickup: {(Pickup != null ? Pickup.ToString() : "null")}, SCP-1344 Item: {(scp1344 != null ? scp1344.ToString() : "null")}");
         if (scp1344 != null)
         {
             if (scp1344 is Scp1344Item scp1344Item)
                 scp1344Item.Status = Scp1344Status.Active;
             if (!EventHandler.Scp035Serials.ContainsKey(scp1344.Serial))
-                EventHandler.Scp035Serials.Add(scp1344.Serial, (Scp035.Singleton.Config?.MaxLifetimePerMask ?? 3)-1);
+                EventHandler.Scp035Serials.Add(scp1344.Serial, (Scp035.Singleton.Config?.MaxLifetimePerMask ?? 3) - 1);
         }
 
         var savedItem = ItemType.None;
@@ -169,9 +170,11 @@ public class Scp035Role : EventCustomRole
             _lastAliveRole.AddModule(typeof(SilentAnnouncer));
             _lastAliveRole = null;
         }
-        
-        LogManager.Debug($"Scp1344 Serial: {(scp1344 != null ? scp1344.ToString() : "null")} | EventHandler.Scp035Serials Count: {EventHandler.Scp035Serials.Count} | Lives Left: {(scp1344 != null && EventHandler.Scp035Serials.TryGetValue(scp1344.Serial, out var lives2) ? lives2.ToString() : "N/A")}");
-        if (scp1344 != null && EventHandler.Scp035Serials.Count == 1 && EventHandler.Scp035Serials.TryGetValue(scp1344.Serial, out var lives) && lives == 0)
+
+        LogManager.Debug(
+            $"Scp1344 Serial: {(scp1344 != null ? scp1344.ToString() : "null")} | EventHandler.Scp035Serials Count: {EventHandler.Scp035Serials.Count} | Lives Left: {(scp1344 != null && EventHandler.Scp035Serials.TryGetValue(scp1344.Serial, out var lives2) ? lives2.ToString() : "N/A")}");
+        if (scp1344 != null && EventHandler.Scp035Serials.Count == 1 &&
+            EventHandler.Scp035Serials.TryGetValue(scp1344.Serial, out var lives) && lives == 0)
         {
             LogManager.Debug("Adding SCP-035 announcer to the spawned SCP-035.");
             role.AddModule(typeof(CustomScpAnnouncer), new Dictionary<string, object>
@@ -181,7 +184,7 @@ public class Scp035Role : EventCustomRole
             role.RemoveModule<SilentAnnouncer>();
             _lastAliveRole = role;
         }
-        
+
         base.OnSpawned(role);
     }
 

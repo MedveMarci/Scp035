@@ -43,7 +43,8 @@ public class EventHandler : CustomEventsHandler
         var chance = Scp035.Singleton.Config.SpawnChance;
         var minPlayers = Scp035.Singleton.Config.MinimumPlayers;
         var players = Player.ReadyList.Where(p => !p.IsSCP && p.IsAlive).ToList();
-        LogManager.Debug($"SCP-035 spawn check: {players.Count} eligible players, minimum required: {minPlayers}, chance: {chance}%.");
+        LogManager.Debug(
+            $"SCP-035 spawn check: {players.Count} eligible players, minimum required: {minPlayers}, chance: {chance}%.");
         if (players.Count >= minPlayers && Random.Range(0, 100) < chance)
         {
             LogManager.Debug("SCP-035 will be spawned this round.");
@@ -94,6 +95,7 @@ public class EventHandler : CustomEventsHandler
                 Scp035Serials.Remove(ev.Pickup.Serial);
                 return;
             }
+
             ev.IsAllowed = false;
             Scp035Serials[ev.Pickup.Serial] = --life;
             SpawnScp035(ev.Player, false, false, ev.Pickup);
@@ -133,7 +135,8 @@ public class EventHandler : CustomEventsHandler
 
     internal static void SpawnScp035(Player player, bool isRoundStart, bool spawnPosition, Pickup pickup = null)
     {
-        LogManager.Debug($"Spawning SCP-035 for player {player.Nickname} (UserID: {player.UserId}), isRoundStart: {isRoundStart}, spawnPosition: {spawnPosition}, pickup: {(pickup != null ? pickup.Type.ToString() : "null")}.");
+        LogManager.Debug(
+            $"Spawning SCP-035 for player {player.Nickname} (UserID: {player.UserId}), isRoundStart: {isRoundStart}, spawnPosition: {spawnPosition}, pickup: {(pickup != null ? pickup.Type.ToString() : "null")}.");
         var room = Room.Get(RoomName.Hcz049).First();
         if (spawnPosition)
             player.Position = room.Transform.TransformPoint(new Vector3(33, 96.8f, 11.86f));
@@ -163,6 +166,7 @@ public class EventHandler : CustomEventsHandler
                 scp035Role.Pickup = pickup;
                 pickup.Destroy();
             }
+
             CustomRole.Register(scp035Role);
             player.SetCustomRole(scp035Role);
         }
@@ -272,12 +276,11 @@ public class EventHandler : CustomEventsHandler
         Particles.ProceduralParticles(scp1344Pickup.GameObject, new Color32(255, 0, 0, 255), 0, 0.2f,
             new Vector3(0.5f, 0.5f, 0.5f),
             0.1f, 40);
-
     }
 
     public override void OnServerWaitingForPlayers()
     {
-        _ = ApiCommunicator.CheckForUpdatesAsync();
+        ApiManager.CheckForUpdates();
         base.OnServerWaitingForPlayers();
     }
 }

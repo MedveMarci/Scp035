@@ -3,6 +3,7 @@
 An SCP: Secret Laboratory LabApi plugin which adds SCP-035 into the game.
 
 # Features
+
 - Fully functional SCP-035 Role and Mask item.
 - A little scene if the player spawns as SCP-035 at the beginning of the round.
 - Very customizable via the config file.
@@ -10,7 +11,9 @@ An SCP: Secret Laboratory LabApi plugin which adds SCP-035 into the game.
 # Installation
 
 - ``Scp035.dll`` move to => ``~\LabAPI\plugins\global``
-- Install the [``UncomplicatedCustomRoles-LabApi.dll``](https://github.com/UncomplicatedCustomServer/UncomplicatedCustomRoles/releases/latest) to =>
+- Install the [
+  ``UncomplicatedCustomRoles-LabApi.dll``](https://github.com/UncomplicatedCustomServer/UncomplicatedCustomRoles/releases/latest)
+  to =>
   ``~\LabAPI\plugins\global``
 
 # Commands
@@ -20,4 +23,5 @@ An SCP: Secret Laboratory LabApi plugin which adds SCP-035 into the game.
 - If you want to remove, just simply set the player to a different role.
 
 # Credits
+
 - Created by ``MedveMarci``

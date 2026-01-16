@@ -56,18 +56,18 @@
     <ItemGroup>
         <PackageReference Include="Lib.Harmony" Version="2.4.2"/>
         <PackageReference Include="System.Net.Http" Version="4.3.4"/>
-        <PackageReference Include="System.Text.Json" Version="10.0.1" />
+        <PackageReference Include="System.Text.Json" Version="10.0.1"/>
         <PackageReference Include="YamlDotNet" Version="11.0.1"/>
     </ItemGroup>
     <ItemGroup>
-        <Compile Include="ApiFeatures\BearmanLogsCommand.cs" />
+        <Compile Include="ApiFeatures\BearmanLogsCommand.cs"/>
         <Compile Include="Commands\SpawnScp035.cs"/>
         <Compile Include="Config.cs"/>
         <Compile Include="EventHandler.cs"/>
         <Compile Include="Features\Environment.cs"/>
         <Compile Include="Features\Scp035Role.cs"/>
-        <Compile Include="ApiFeatures\ApiCommunicator.cs" />
-        <Compile Include="ApiFeatures\LogManager.cs" />
+        <Compile Include="ApiFeatures\ApiManager.cs"/>
+        <Compile Include="ApiFeatures\LogManager.cs"/>
         <Compile Include="Plugin.cs"/>
         <Compile Include="Properties\AssemblyInfo.cs"/>
     </ItemGroup>
