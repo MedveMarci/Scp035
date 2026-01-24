@@ -155,12 +155,10 @@ public class EventHandler : CustomEventsHandler
             if (role.IsScp() || role.IsDead())
                 role = Scp035.Singleton.Config?.DefaultScp035Role ?? RoleTypeId.ClassD;
             LogManager.Debug("Directly assigning SCP-035 role to player.");
-            var scp035Role = new Scp035Role
-            {
-                Id = 5000 + (int)player.Role + player.PlayerId + 35,
-                Role = role,
-                RoleAppearance = player.Role
-            };
+            var scp035Role = Scp035.Singleton.Config?.Scp035Role ?? new Scp035Role();
+            scp035Role.Id = 5000 + (int)player.Role + player.PlayerId + 35;
+            scp035Role.Role = role;
+            scp035Role.RoleAppearance = player.Role;
             if (pickup != null)
             {
                 scp035Role.Pickup = pickup;
@@ -205,12 +203,10 @@ public class EventHandler : CustomEventsHandler
         if (role.IsScp() || role.IsDead())
             role = Scp035.Singleton.Config?.DefaultScp035Role ?? RoleTypeId.ClassD;
         LogManager.Debug("Assigning SCP-035 role to player after spawn effect.");
-        var scp035Role = new Scp035Role
-        {
-            Id = 5000 + (int)player.Role + player.PlayerId + 35,
-            Role = role,
-            RoleAppearance = player.Role
-        };
+        var scp035Role = Scp035.Singleton.Config?.Scp035Role ?? new Scp035Role();
+        scp035Role.Id = 5000 + (int)player.Role + player.PlayerId + 35;
+        scp035Role.Role = role;
+        scp035Role.RoleAppearance = player.Role;
         CustomRole.Register(scp035Role);
         player.SetCustomRole(scp035Role);
     }
