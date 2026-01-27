@@ -102,7 +102,6 @@ public class Scp035Role : EventCustomRole
         CanReplaceRoles = [],
         MaxPlayers = 0,
         MinPlayers = 0,
-        RequiredPermission = [],
         Spawn = SpawnType.KeepCurrentPositionSpawn,
         SpawnChance = 0,
         SpawnPoints = [],
