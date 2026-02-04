@@ -138,6 +138,12 @@ public class EventHandler : CustomEventsHandler
         LogManager.Debug(
             $"Spawning SCP-035 for player {player.Nickname} (UserID: {player.UserId}), isRoundStart: {isRoundStart}, spawnPosition: {spawnPosition}, pickup: {(pickup != null ? pickup.Type.ToString() : "null")}.");
         var room = Room.Get(RoomName.Hcz049).First();
+        var role = player.Role;
+        LogManager.Debug($"The player isSCP: {player.IsSCP}, roleIsScp: {role.IsScp()}, roleIsDead: {role.IsDead()}.");
+        if (role.IsScp() || role.IsDead())
+            role = Scp035.Singleton.Config?.DefaultScp035Role ?? RoleTypeId.ClassD;
+        if (role != player.Role)
+            player.SetRole(role);
         if (spawnPosition)
             player.Position = room.Transform.TransformPoint(new Vector3(33, 96.8f, 11.86f));
         if (isRoundStart)
@@ -151,10 +157,7 @@ public class EventHandler : CustomEventsHandler
         }
         else
         {
-            var role = player.Role;
-            if (role.IsScp() || role.IsDead())
-                role = Scp035.Singleton.Config?.DefaultScp035Role ?? RoleTypeId.ClassD;
-            LogManager.Debug("Directly assigning SCP-035 role to player.");
+            LogManager.Debug($"Directly assigning SCP-035 role to player with role: {role}");
             var scp035Role = Scp035.Singleton.Config?.Scp035Role ?? new Scp035Role();
             scp035Role.Id = 5000 + (int)player.Role + player.PlayerId + 35;
             scp035Role.Role = role;
@@ -200,9 +203,7 @@ public class EventHandler : CustomEventsHandler
         _lockerPickup.Destroy();
         _lockerPickup = null;
         var role = player.Role;
-        if (role.IsScp() || role.IsDead())
-            role = Scp035.Singleton.Config?.DefaultScp035Role ?? RoleTypeId.ClassD;
-        LogManager.Debug("Assigning SCP-035 role to player after spawn effect.");
+        LogManager.Debug($"Assigning assigning SCP-035 role to player after spawn effect with role: {role}");
         var scp035Role = Scp035.Singleton.Config?.Scp035Role ?? new Scp035Role();
         scp035Role.Id = 5000 + (int)player.Role + player.PlayerId + 35;
         scp035Role.Role = role;
