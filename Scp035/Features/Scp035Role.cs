@@ -111,7 +111,7 @@ public class Scp035Role : EventCustomRole
         SpawnZones = []
     };
 
-    [YamlIgnore] public override List<object>? CustomFlags { get; set; } = [];
+    public override List<object>? CustomFlags { get; set; } = [];
 
     [YamlIgnore] public override bool IgnoreSpawnSystem { get; set; } = true;
     [YamlIgnore] public Pickup? Pickup { get; set; }
