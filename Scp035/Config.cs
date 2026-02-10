@@ -28,7 +28,7 @@ public class Config
 
     [Description("Whether to disable particle effects for SCP-035 Item.")]
     public bool DisableParticles { get; set; } = false;
-    
+
     [Description("Whether to enable particle effects for SCP-035 Player.")]
     public bool EnablePlayerParticles { get; set; } = false;
 

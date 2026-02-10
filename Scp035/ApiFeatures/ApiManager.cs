@@ -11,74 +11,74 @@ public static class ApiManager
 
     internal static void CheckForUpdates()
     {
-            var name = Scp035.Singleton.Name;
-            var currentVersion = Scp035.Singleton.Version;
+        var name = Scp035.Singleton.Name;
+        var currentVersion = Scp035.Singleton.Version;
 
-            var resp = HttpQuery.Get($"{ApiBase}/api/v1/plugin/{Uri.EscapeDataString(name)}/latest");
-            var (statusCode, message) = ParseApiResponse(resp);
+        var resp = HttpQuery.Get($"{ApiBase}/api/v1/plugin/{Uri.EscapeDataString(name)}/latest");
+        var (statusCode, message) = ParseApiResponse(resp);
 
-            if (statusCode != HttpStatusCode.OK)
-            {
-                LogManager.Error($"Version check failed: {statusCode} - {message}");
-                return;
-            }
+        if (statusCode != HttpStatusCode.OK)
+        {
+            LogManager.Error($"Version check failed: {statusCode} - {message}");
+            return;
+        }
 
-            var root = JsonDocument.Parse(resp).RootElement;
+        var root = JsonDocument.Parse(resp).RootElement;
 
-            if (!root.TryGetProperty("version", out var versionProp) || versionProp.ValueKind != JsonValueKind.String)
-            {
-                LogManager.Error("Version check failed: 'version' field missing or invalid.");
-                return;
-            }
+        if (!root.TryGetProperty("version", out var versionProp) || versionProp.ValueKind != JsonValueKind.String)
+        {
+            LogManager.Error("Version check failed: 'version' field missing or invalid.");
+            return;
+        }
 
-            var version = versionProp.GetString();
+        var version = versionProp.GetString();
 
-            if (version == null || !Version.TryParse(version, out var latestRemoteVersion))
-            {
-                LogManager.Error("Version check failed: Invalid version format.");
-                return;
-            }
+        if (version == null || !Version.TryParse(version, out var latestRemoteVersion))
+        {
+            LogManager.Error("Version check failed: Invalid version format.");
+            return;
+        }
 
-            var outdated = latestRemoteVersion > currentVersion;
-            var currentIsNewerThanRemote = currentVersion > latestRemoteVersion;
+        var outdated = latestRemoteVersion > currentVersion;
+        var currentIsNewerThanRemote = currentVersion > latestRemoteVersion;
 
-            var currentVersionResp =
-                HttpQuery.Get(
-                    $"{ApiBase}/api/v1/plugin/{Uri.EscapeDataString(name)}/version/{Uri.EscapeDataString(currentVersion.ToString())}");
-            var (currentStatusCode, currentMessage) = ParseApiResponse(currentVersionResp);
-            if (currentStatusCode != HttpStatusCode.OK)
-                LogManager.Debug($"Recall check failed: {currentStatusCode} - {currentMessage}");
-            
-
-            var recallRoot = JsonDocument.Parse(currentVersionResp).RootElement;
-
-            if (recallRoot.TryGetProperty("is_recalled", out var isRecalledProp) &&
-                isRecalledProp.ValueKind == JsonValueKind.True)
-            {
-                var recallReason = recallRoot.TryGetProperty("recall_reason", out var reasonProp) &&
-                                   reasonProp.ValueKind == JsonValueKind.String
-                    ? reasonProp.GetString()
-                    : "No reason provided.";
-                LogManager.Error(
-                    $"This version of {name} has been recalled.\nPlease update to {latestRemoteVersion} version as soon as possible.\nReason: {recallReason}",
-                    ConsoleColor.DarkRed);
-                return;
-            }
-
-            if (outdated)
-                LogManager.Info(
-                    $"A new of {name} version is available: {version} (current {currentVersion}). {GetDownloadUrl(root)}",
-                    ConsoleColor.DarkRed);
-            else
-                LogManager.Info(
-                    $"Thanks for using {name} v{currentVersion}. To get support and latest news, join to my Discord Server: https://discord.gg/KmpA8cfaSA",
-                    ConsoleColor.Blue);
+        var currentVersionResp =
+            HttpQuery.Get(
+                $"{ApiBase}/api/v1/plugin/{Uri.EscapeDataString(name)}/version/{Uri.EscapeDataString(currentVersion.ToString())}");
+        var (currentStatusCode, currentMessage) = ParseApiResponse(currentVersionResp);
+        if (currentStatusCode != HttpStatusCode.OK)
+            LogManager.Debug($"Recall check failed: {currentStatusCode} - {currentMessage}");
 
 
-            if (!currentIsNewerThanRemote) return;
+        var recallRoot = JsonDocument.Parse(currentVersionResp).RootElement;
+
+        if (recallRoot.TryGetProperty("is_recalled", out var isRecalledProp) &&
+            isRecalledProp.ValueKind == JsonValueKind.True)
+        {
+            var recallReason = recallRoot.TryGetProperty("recall_reason", out var reasonProp) &&
+                               reasonProp.ValueKind == JsonValueKind.String
+                ? reasonProp.GetString()
+                : "No reason provided.";
+            LogManager.Error(
+                $"This version of {name} has been recalled.\nPlease update to {latestRemoteVersion} version as soon as possible.\nReason: {recallReason}",
+                ConsoleColor.DarkRed);
+            return;
+        }
+
+        if (outdated)
             LogManager.Info(
-                $"You are running a newer version of {name} ({currentVersion}) than {latestRemoteVersion}. This is a development/pre-release build and it can contain errors or bugs.",
-                ConsoleColor.DarkMagenta);
+                $"A new of {name} version is available: {version} (current {currentVersion}). {GetDownloadUrl(root)}",
+                ConsoleColor.DarkRed);
+        else
+            LogManager.Info(
+                $"Thanks for using {name} v{currentVersion}. To get support and latest news, join to my Discord Server: https://discord.gg/KmpA8cfaSA",
+                ConsoleColor.Blue);
+
+
+        if (!currentIsNewerThanRemote) return;
+        LogManager.Info(
+            $"You are running a newer version of {name} ({currentVersion}) than {latestRemoteVersion}. This is a development/pre-release build and it can contain errors or bugs.",
+            ConsoleColor.DarkMagenta);
     }
 
     private static string GetDownloadUrl(JsonElement root)

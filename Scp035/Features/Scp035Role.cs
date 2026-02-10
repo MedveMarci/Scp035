@@ -186,7 +186,7 @@ public class Scp035Role : EventCustomRole
             role.RemoveModule<SilentAnnouncer>();
             _lastAliveRole = role;
         }
-        
+
         if (Scp035.Singleton.Config != null && Scp035.Singleton.Config.EnablePlayerParticles)
             Particles.ProceduralParticles(player.GameObject, new Color32(255, 0, 0, 255), 0, 0.2f,
                 new Vector3(0.5f, 0.5f, 0.5f),
