@@ -5,6 +5,7 @@ using InventorySystem.Items.Scp1509;
 using InventorySystem.Items.Usables.Scp1344;
 using LabApi.Events.Arguments.PlayerEvents;
 using LabApi.Features.Wrappers;
+using MEC;
 using Mirror;
 using PlayerRoles;
 using Scp035.ApiFeatures;
@@ -102,7 +103,6 @@ public class Scp035Role : EventCustomRole
         CanReplaceRoles = [],
         MaxPlayers = 0,
         MinPlayers = 0,
-        RequiredPermission = [],
         Spawn = SpawnType.KeepCurrentPositionSpawn,
         SpawnChance = 0,
         SpawnPoints = [],
@@ -111,7 +111,7 @@ public class Scp035Role : EventCustomRole
         SpawnZones = []
     };
 
-    [YamlIgnore] public override List<object>? CustomFlags { get; set; } = [];
+    public override List<object>? CustomFlags { get; set; } = [];
 
     [YamlIgnore] public override bool IgnoreSpawnSystem { get; set; } = true;
     [YamlIgnore] public Pickup? Pickup { get; set; }
@@ -187,6 +187,11 @@ public class Scp035Role : EventCustomRole
             _lastAliveRole = role;
         }
 
+        if (Scp035.Singleton.Config != null && Scp035.Singleton.Config.EnablePlayerParticles)
+            Particles.ProceduralParticles(player.GameObject, new Color32(255, 0, 0, 255), 0, 0.2f,
+                new Vector3(0.5f, 0.5f, 0.5f),
+                0.1f, 40);
+
         base.OnSpawned(role);
     }
 
@@ -202,6 +207,7 @@ public class Scp035Role : EventCustomRole
     {
         LogManager.Debug("Removing SCP-035 role for player " + role.Player.Nickname);
         CustomRole.Unregister(role.Role);
+        Timing.KillCoroutines(role.Player.GameObject);
         base.OnRemoved(role);
     }
 }

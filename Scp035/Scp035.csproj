@@ -48,6 +48,7 @@
         <Reference Include="UnityEngine.CoreModule" HintPath="$(sl_references)\UnityEngine.CoreModule.dll"/>
         <Reference Include="LabApi" HintPath="$(sl_references)\LabApi.dll"/>
         <Reference Include="NorthwoodLib" HintPath="$(sl_references)\NorthwoodLib.dll"/>
+        <Reference Include="UnityEngine.PhysicsModule" HintPath="$(sl_references)\UnityEngine.PhysicsModule.dll"/>
     </ItemGroup>
     <ItemGroup>
         <Content Include="..\README.md" Link="README.md"/>
@@ -56,7 +57,7 @@
     <ItemGroup>
         <PackageReference Include="Lib.Harmony" Version="2.4.2"/>
         <PackageReference Include="System.Net.Http" Version="4.3.4"/>
-        <PackageReference Include="System.Text.Json" Version="10.0.2" />
+        <PackageReference Include="System.Text.Json" Version="10.0.2"/>
         <PackageReference Include="YamlDotNet" Version="11.0.1"/>
     </ItemGroup>
     <ItemGroup>

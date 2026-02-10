@@ -16,13 +16,14 @@ using Scp035.Features;
 using UncomplicatedCustomRoles.API.Features;
 using UncomplicatedCustomRoles.Extensions;
 using UnityEngine;
-using Locker = LabApi.Features.Wrappers.Locker;
+using Locker = MapGeneration.Distributors.Locker;
+using LabApiLocker = LabApi.Features.Wrappers.Locker;
 
 namespace Scp035;
 
 public class EventHandler : CustomEventsHandler
 {
-    private static Locker _locker;
+    private static LabApiLocker _locker;
     private static Pickup _lockerPickup;
     internal static readonly Dictionary<uint, int> Scp035Serials = [];
 
@@ -138,6 +139,12 @@ public class EventHandler : CustomEventsHandler
         LogManager.Debug(
             $"Spawning SCP-035 for player {player.Nickname} (UserID: {player.UserId}), isRoundStart: {isRoundStart}, spawnPosition: {spawnPosition}, pickup: {(pickup != null ? pickup.Type.ToString() : "null")}.");
         var room = Room.Get(RoomName.Hcz049).First();
+        var role = player.Role;
+        LogManager.Debug($"The player isSCP: {player.IsSCP}, roleIsScp: {role.IsScp()}, roleIsDead: {role.IsDead()}.");
+        if (role.IsScp() || role.IsDead())
+            role = Scp035.Singleton.Config?.DefaultScp035Role ?? RoleTypeId.ClassD;
+        if (role != player.Role)
+            player.SetRole(role);
         if (spawnPosition)
             player.Position = room.Transform.TransformPoint(new Vector3(33, 96.8f, 11.86f));
         if (isRoundStart)
@@ -151,10 +158,7 @@ public class EventHandler : CustomEventsHandler
         }
         else
         {
-            var role = player.Role;
-            if (role.IsScp() || role.IsDead())
-                role = Scp035.Singleton.Config?.DefaultScp035Role ?? RoleTypeId.ClassD;
-            LogManager.Debug("Directly assigning SCP-035 role to player.");
+            LogManager.Debug($"Directly assigning SCP-035 role to player with role: {role}");
             var scp035Role = Scp035.Singleton.Config?.Scp035Role ?? new Scp035Role();
             scp035Role.Id = 5000 + (int)player.Role + player.PlayerId + 35;
             scp035Role.Role = role;
@@ -200,9 +204,7 @@ public class EventHandler : CustomEventsHandler
         _lockerPickup.Destroy();
         _lockerPickup = null;
         var role = player.Role;
-        if (role.IsScp() || role.IsDead())
-            role = Scp035.Singleton.Config?.DefaultScp035Role ?? RoleTypeId.ClassD;
-        LogManager.Debug("Assigning SCP-035 role to player after spawn effect.");
+        LogManager.Debug($"Assigning assigning SCP-035 role to player after spawn effect with role: {role}");
         var scp035Role = Scp035.Singleton.Config?.Scp035Role ?? new Scp035Role();
         scp035Role.Id = 5000 + (int)player.Role + player.PlayerId + 35;
         scp035Role.Role = role;
@@ -223,55 +225,60 @@ public class EventHandler : CustomEventsHandler
     private static void SetupLocker()
     {
         LogManager.Debug("Setting up SCP-035 locker.");
+        if (_locker != null)
+        {
+            LogManager.Debug("SCP-035 locker already exists, skipping setup.");
+            _locker.Destroy();
+            _locker = null;
+        }
+
+        if (_lockerPickup != null)
+        {
+            LogManager.Debug("SCP-035 locker pickup already exists, destroying it.");
+            _lockerPickup.Destroy();
+            _lockerPickup = null;
+        }
+
         var room = Room.Get(RoomName.Hcz049).First();
-        var prefab =
-            NetworkClient.prefabs.Values.FirstOrDefault(p => p != null && p.name == "Scp1344PedestalStructure Variant");
-
-        if (prefab == null || !prefab.TryGetComponent(out MapGeneration.Distributors.Locker locker))
+        if (!NetworkClient.prefabs.TryGetValue(1763950070, out var prefab) ||
+            !prefab.TryGetComponent(out Locker lockerPrefab))
         {
-            LogManager.Error("Failed to find SCP-035 locker prefab.");
+            LogManager.Error("Failed to find locker prefab in NetworkClient prefabs.");
             return;
         }
 
-        var instantiate = Object.Instantiate(locker);
+        var locker = Object.Instantiate(lockerPrefab);
         var absolutePosition = room.Transform.TransformPoint(new Vector3(33f, 95.841f, 13.246f));
-        var absoluteRotation = room.Transform.rotation * Quaternion.Euler(new Vector3(180f, 0f, 0f));
-        instantiate.transform.SetPositionAndRotation(absolutePosition, absoluteRotation);
+        var absoluteRotation = room.Transform.rotation * Quaternion.Euler(new Vector3(0f, 180f, 0f));
+        locker.transform.SetPositionAndRotation(absolutePosition, absoluteRotation);
 
-        if (instantiate.TryGetComponent<StructurePositionSync>(out var component1))
+        if (locker.TryGetComponent(out StructurePositionSync sync))
+            sync.Start();
+
+        NetworkServer.Spawn(locker.gameObject);
+
+        Timing.CallDelayed(0.25f, () =>
         {
-            component1.Network_position = instantiate.transform.position;
-            component1.Network_rotationY =
-                (sbyte)Mathf.RoundToInt(instantiate.transform.rotation.eulerAngles.y / 5.625f);
-        }
+            var labLocker = LabApiLocker.Get(locker);
+            var lockerChamber = labLocker.Chambers.First();
+            var scp1344Pickup = lockerChamber.GetAllItems().FirstOrDefault(item => item.Type == ItemType.SCP1344);
+            if (scp1344Pickup is not { Type: ItemType.SCP1344 })
+            {
+                LogManager.Error("Failed to find SCP-1344 in SCP-035 locker.");
+                return;
+            }
 
-        instantiate.gameObject.name = "Scp035Locker";
-        NetworkServer.Spawn(instantiate.gameObject);
-        var labLocker = Locker.Get(instantiate);
-        labLocker.ClearAllChambers();
-        labLocker.ClearLockerLoot();
-        labLocker.AddLockerLoot(ItemType.SCP1344, 1, 100, 1, 1);
-        var lockerChamber = labLocker.Chambers.First();
-        lockerChamber.AcceptableItems = [ItemType.SCP1344];
-        lockerChamber.Fill();
+            scp1344Pickup.IsLocked = true;
+            _locker = labLocker;
+            _lockerPickup = scp1344Pickup;
 
-        var scp1344Pickup = Pickup.Get(lockerChamber.Base.Content.First());
-        if (scp1344Pickup is not { Type: ItemType.SCP1344 })
-        {
-            LogManager.Error("Failed to find SCP-1344 in SCP-035 locker.");
-            return;
-        }
-
-        scp1344Pickup.IsLocked = true;
-        _locker = labLocker;
-        _lockerPickup = scp1344Pickup;
-
-        if (Scp035.Singleton.Config == null || Scp035.Singleton.Config.DisableParticles) return;
-        Particles.HighlightObject(scp1344Pickup.GameObject, new Color32(255, 0, 0, 255), LightShadows.None, 2f,
-            0.5f);
-        Particles.ProceduralParticles(scp1344Pickup.GameObject, new Color32(255, 0, 0, 255), 0, 0.2f,
-            new Vector3(0.5f, 0.5f, 0.5f),
-            0.1f, 40);
+            if (Scp035.Singleton.Config == null || Scp035.Singleton.Config.DisableParticles) return;
+            Particles.HighlightObject(scp1344Pickup.GameObject, new Color32(255, 0, 0, 255), LightShadows.None, 2f,
+                0.5f);
+            Particles.ProceduralParticles(scp1344Pickup.GameObject, new Color32(255, 0, 0, 255), 0, 0.2f,
+                new Vector3(0.5f, 0.5f, 0.5f),
+                0.1f, 40);
+        });
     }
 
     public override void OnServerWaitingForPlayers()
