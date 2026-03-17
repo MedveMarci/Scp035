@@ -26,7 +26,7 @@ public class SpawnScp035 : ICommand, IUsageProvider
         if (arguments.Count < 2)
         {
             response =
-                $"To execute this command provide at least 1 argument!\nUsage: {arguments.Array[0]} {this.DisplayCommandUsage()}";
+                $"To execute this command provide at least 2 arguments!\nUsage: {arguments.Array[0]} {this.DisplayCommandUsage()}";
             return false;
         }
 

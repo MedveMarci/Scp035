@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using CustomPlayerEffects;
 using LabApi.Events.Arguments.PlayerEvents;
@@ -29,44 +29,41 @@ public class EventHandler : CustomEventsHandler
     private static Pickup _lockerPickup;
     internal static readonly Dictionary<uint, int> Scp035Serials = [];
 
-    public void OnPlayersSpawned()
-    {
-        if (Scp035.Singleton.Config == null)
-            return;
+    private static Config Cfg => Scp035.Singleton.Config;
 
-        if (Scp035.Singleton.Config.DisableSpawning)
+    public static void OnPlayersSpawned()
+    {
+        var cfg = Cfg;
+        if (cfg == null || cfg.DisableSpawning)
         {
             LogManager.Debug("SCP-035 spawning is disabled in config, skipping spawn check.");
             return;
         }
 
-        var chance = Scp035.Singleton.Config.SpawnChance;
-        var minPlayers = Scp035.Singleton.Config.MinimumPlayers;
         var players = Player.ReadyList.Where(p => !p.IsSCP && p.IsAlive).ToList();
         LogManager.Debug(
-            $"SCP-035 spawn check: {players.Count} eligible players, minimum required: {minPlayers}, chance: {chance}%.");
-        if (players.Count >= minPlayers && Random.Range(0, 100) < chance)
-        {
-            LogManager.Debug("SCP-035 will be spawned this round.");
-            Player selectedPlayer;
-            if (Scp035.Singleton.Config.SelectFromScps)
-            {
-                var scpPlayers = Player.ReadyList.Where(p => p.IsSCP && p.IsAlive).ToList();
-                selectedPlayer = scpPlayers.Count == 0
-                    ? players[Random.Range(0, players.Count)]
-                    : scpPlayers[Random.Range(0, scpPlayers.Count)];
-                LogManager.Debug($"Selecting SCP-035 from SCP players, found {scpPlayers.Count} SCP players.");
-            }
-            else
-            {
-                selectedPlayer = players[Random.Range(0, players.Count)];
-                LogManager.Debug("Selecting SCP-035 from non-SCP players.");
-            }
+            $"SCP-035 spawn check: {players.Count} eligible players, minimum required: {cfg.MinimumPlayers}, chance: {cfg.SpawnChance}%.");
 
-            SpawnScp035(selectedPlayer, true, true);
+        if (players.Count < cfg.MinimumPlayers || Random.Range(0, 100) >= cfg.SpawnChance)
+            return;
+
+        LogManager.Debug("SCP-035 will be spawned this round.");
+        Player selectedPlayer;
+        if (cfg.SelectFromScps)
+        {
+            var scpPlayers = Player.ReadyList.Where(p => p.IsSCP && p.IsAlive).ToList();
+            selectedPlayer = scpPlayers.Count == 0
+                ? players[Random.Range(0, players.Count)]
+                : scpPlayers[Random.Range(0, scpPlayers.Count)];
+            LogManager.Debug($"Selecting SCP-035 from SCP players, found {scpPlayers.Count} SCP players.");
+        }
+        else
+        {
+            selectedPlayer = players[Random.Range(0, players.Count)];
+            LogManager.Debug("Selecting SCP-035 from non-SCP players.");
         }
 
-        base.OnServerRoundStarted();
+        SpawnScp035(selectedPlayer, true, true);
     }
 
     public override void OnPlayerCuffing(PlayerCuffingEventArgs ev)
@@ -80,15 +77,21 @@ public class EventHandler : CustomEventsHandler
 
     public override void OnPlayerPickingUpItem(PlayerPickingUpItemEventArgs ev)
     {
-        if (Scp035.Singleton.Config.DisableSpawning && !Scp035.Singleton.Config.DisableLocker &&
+        if (Cfg.DisableSpawning && !Cfg.DisableLocker &&
             _lockerPickup != null &&
-            ev.Pickup.Serial == _lockerPickup.Serial) SpawnScp035(ev.Player, false, false, ev.Pickup);
+            ev.Pickup.Serial == _lockerPickup.Serial)
+        {
+            SpawnScp035(ev.Player, false, false, ev.Pickup);
+            base.OnPlayerPickingUpItem(ev);
+            return;
+        }
 
         if (Scp035Serials.TryGetValue(ev.Pickup.Serial, out var life))
         {
             if (ev.Pickup.Type != ItemType.SCP1344)
             {
                 Scp035Serials.Remove(ev.Pickup.Serial);
+                base.OnPlayerPickingUpItem(ev);
                 return;
             }
 
@@ -102,34 +105,42 @@ public class EventHandler : CustomEventsHandler
 
     public override void OnServerPickupCreated(PickupCreatedEventArgs ev)
     {
-        if (Scp035Serials.TryGetValue(ev.Pickup.Serial, out var life))
+        if (!Scp035Serials.TryGetValue(ev.Pickup.Serial, out var life))
         {
-            if (ev.Pickup.Type != ItemType.SCP1344)
-            {
-                Scp035Serials.Remove(ev.Pickup.Serial);
-                return;
-            }
-
-            if (Scp035.Singleton.Config != null && life <= 0)
-            {
-                ev.Pickup.Destroy();
-                Scp035Serials.Remove(ev.Pickup.Serial);
-                return;
-            }
-
-            if (Scp035.Singleton.Config != null && Scp035.Singleton.Config.DisableParticles)
-                return;
-            Particles.HighlightObject(ev.Pickup.GameObject, new Color32(255, 0, 0, 255), LightShadows.None, 2f,
-                0.5f);
-            Particles.ProceduralParticles(ev.Pickup.GameObject, new Color32(255, 0, 0, 255), 0, 0.2f,
-                new Vector3(0.5f, 0.5f, 0.5f),
-                0.1f, 40);
+            base.OnServerPickupCreated(ev);
+            return;
         }
+
+        if (ev.Pickup.Type != ItemType.SCP1344)
+        {
+            Scp035Serials.Remove(ev.Pickup.Serial);
+            base.OnServerPickupCreated(ev);
+            return;
+        }
+
+        var cfg = Cfg;
+        if (cfg != null && life <= 0)
+        {
+            ev.Pickup.Destroy();
+            Scp035Serials.Remove(ev.Pickup.Serial);
+            base.OnServerPickupCreated(ev);
+            return;
+        }
+
+        if (cfg == null || cfg.DisableParticles)
+        {
+            base.OnServerPickupCreated(ev);
+            return;
+        }
+
+        Particles.HighlightObject(ev.Pickup.GameObject, new Color32(255, 0, 0, 255), LightShadows.None, 2f, 0.5f);
+        Particles.ProceduralParticles(ev.Pickup.GameObject, new Color32(255, 0, 0, 255), 0, 0.2f,
+            new Vector3(0.5f, 0.5f, 0.5f), 0.1f, 40);
 
         base.OnServerPickupCreated(ev);
     }
 
-    internal static void SpawnScp035(Player player, bool isRoundStart, bool spawnPosition, Pickup pickup = null)
+    public static void SpawnScp035(Player player, bool isRoundStart, bool spawnPosition, Pickup pickup = null)
     {
         LogManager.Debug(
             $"Spawning SCP-035 for player {player.Nickname} (UserID: {player.UserId}), isRoundStart: {isRoundStart}, spawnPosition: {spawnPosition}, pickup: {(pickup != null ? pickup.Type.ToString() : "null")}.");
@@ -137,7 +148,7 @@ public class EventHandler : CustomEventsHandler
         var role = player.Role;
         LogManager.Debug($"The player isSCP: {player.IsSCP}, roleIsScp: {role.IsScp()}, roleIsDead: {role.IsDead()}.");
         if (role.IsScp() || role.IsDead())
-            role = Scp035.Singleton.Config?.DefaultScp035Role ?? RoleTypeId.ClassD;
+            role = Cfg?.DefaultScp035Role ?? RoleTypeId.ClassD;
         player.DropEverything();
         if (role != player.Role)
             player.SetRole(role);
@@ -150,15 +161,15 @@ public class EventHandler : CustomEventsHandler
             _locker?.OpenAllChambers();
             Timing.KillCoroutines($"Scp035-{player.UserId}");
             LogManager.Debug("Starting SCP-035 spawning coroutine.");
-            Timing.RunCoroutine(SpawningCoroutine(player, room), $"Scp035-{player.UserId}");
+            Timing.RunCoroutine(SpawningCoroutine(player, room, role), $"Scp035-{player.UserId}");
         }
         else
         {
             LogManager.Debug($"Directly assigning SCP-035 role to player with role: {role}");
-            var scp035Role = Scp035.Singleton.Config?.Scp035Role ?? new Scp035Role();
-            scp035Role.Id = 5000 + (int)player.Role + player.PlayerId + 35;
+            var scp035Role = Cfg?.Scp035Role ?? new Scp035Role();
+            scp035Role.Id = 5000 + (int)role + player.PlayerId + 35;
             scp035Role.Role = role;
-            scp035Role.RoleAppearance = player.Role;
+            scp035Role.RoleAppearance = role;
             if (pickup != null)
             {
                 scp035Role.Pickup = pickup;
@@ -186,17 +197,18 @@ public class EventHandler : CustomEventsHandler
         base.OnPlayerDroppingItem(ev);
     }
 
-    private static IEnumerator<float> SpawningCoroutine(Player player, Room room)
+    private static IEnumerator<float> SpawningCoroutine(Player player, Room room, RoleTypeId role)
     {
         var elapsed = 0f;
         LogManager.Debug($"Starting SCP-035 spawn effect coroutine for player {player.Nickname}");
         while (elapsed < 3f)
         {
-            LogManager.Debug($"SCP-035 spawn effect: elapsed time {elapsed:F2} seconds.");
             player.Rotation = room.Rotation;
             yield return Timing.WaitForOneFrame;
             elapsed += Time.deltaTime;
         }
+
+        LogManager.Debug($"SCP-035 spawn effect finished, elapsed: {elapsed:F2}s");
 
         if (_lockerPickup != null)
         {
@@ -204,12 +216,11 @@ public class EventHandler : CustomEventsHandler
             _lockerPickup = null;
         }
 
-        var role = player.Role;
         LogManager.Debug($"Assigning SCP-035 role to player after spawn effect with role: {role}");
-        var scp035Role = Scp035.Singleton.Config?.Scp035Role ?? new Scp035Role();
-        scp035Role.Id = 5000 + (int)player.Role + player.PlayerId + 35;
+        var scp035Role = Cfg?.Scp035Role ?? new Scp035Role();
+        scp035Role.Id = 5000 + (int)role + player.PlayerId + 35;
         scp035Role.Role = role;
-        scp035Role.RoleAppearance = player.Role;
+        scp035Role.RoleAppearance = role;
         CustomRole.Register(scp035Role);
         player.SetCustomRole(scp035Role);
     }
@@ -219,7 +230,7 @@ public class EventHandler : CustomEventsHandler
         LogManager.Debug("Setting up SCP-035 locker.");
         if (_locker != null)
         {
-            LogManager.Debug("SCP-035 locker already exists, skipping setup.");
+            LogManager.Debug("SCP-035 locker already exists, destroying it.");
             _locker.Destroy();
             _locker = null;
         }
@@ -252,9 +263,15 @@ public class EventHandler : CustomEventsHandler
         Timing.CallDelayed(0.25f, () =>
         {
             var labLocker = LabApiLocker.Get(locker);
+            if (labLocker.Chambers.Count == 0)
+            {
+                LogManager.Error("SCP-035 locker has no chambers.");
+                return;
+            }
+
             var lockerChamber = labLocker.Chambers.First();
             var scp1344Pickup = lockerChamber.GetAllItems().FirstOrDefault(item => item.Type == ItemType.SCP1344);
-            if (scp1344Pickup is not { Type: ItemType.SCP1344 })
+            if (scp1344Pickup == null)
             {
                 LogManager.Error("Failed to find SCP-1344 in SCP-035 locker.");
                 return;
@@ -263,24 +280,26 @@ public class EventHandler : CustomEventsHandler
             _locker = labLocker;
             _lockerPickup = scp1344Pickup;
 
-            if (Scp035.Singleton.Config == null || Scp035.Singleton.Config.DisableParticles) return;
+            var cfg = Cfg;
+            if (cfg == null || cfg.DisableParticles) return;
             Particles.HighlightObject(scp1344Pickup.GameObject, new Color32(255, 0, 0, 255), LightShadows.None, 2f,
                 0.5f);
             Particles.ProceduralParticles(scp1344Pickup.GameObject, new Color32(255, 0, 0, 255), 0, 0.2f,
-                new Vector3(0.5f, 0.5f, 0.5f),
-                0.1f, 40);
+                new Vector3(0.5f, 0.5f, 0.5f), 0.1f, 40);
         });
     }
 
     public override void OnServerWaitingForPlayers()
     {
         ApiManager.CheckForUpdates();
+        LogManager.ClearHistory();
 
         _locker = null;
         _lockerPickup = null;
         Scp035Serials.Clear();
-        if (Scp035.Singleton.Config == null ||
-            (Scp035.Singleton.Config.DisableSpawning && Scp035.Singleton.Config.DisableLocker))
+
+        var cfg = Cfg;
+        if (cfg == null || (cfg.DisableSpawning && cfg.DisableLocker))
         {
             base.OnServerWaitingForPlayers();
             return;

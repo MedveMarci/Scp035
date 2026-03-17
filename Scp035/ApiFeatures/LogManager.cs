@@ -38,6 +38,8 @@ internal static class LogManager
         Logger.Raw($"[ERROR] [{Scp035.Singleton.Name}] {message}", color);
     }
 
+    internal static void ClearHistory() => History.Clear();
+
     public static (string logResult, bool success) GetLogHistory()
     {
         var stringBuilder = StringBuilderPool.Shared.Rent();
