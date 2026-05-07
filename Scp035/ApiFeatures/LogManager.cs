@@ -9,7 +9,7 @@ namespace Scp035.ApiFeatures;
 internal static class LogManager
 {
     private static readonly List<LogEntry> History = [];
-    private static bool DebugEnabled => Scp035.Singleton.Config?.Debug ?? false;
+    private static bool DebugEnabled => Scp035.Singleton.Config.Debug;
 
     public static void Debug(string message)
     {
@@ -47,7 +47,7 @@ internal static class LogManager
             stringBuilder.AppendLine(
                 $"[{DateTimeOffset.FromUnixTimeMilliseconds(log.Timestamp):yyyy-MM-dd HH:mm:ss}] [{log.Level}] {log.Message}");
 
-        if (Scp035.Singleton.Config?.Scp035Role != null)
+        if (Scp035.Singleton.Config.Scp035Role != null)
         {
             stringBuilder.AppendLine("\n--- SCP-035 CustomRole ---\n");
             stringBuilder.Append($"{YamlConfigParser.Serializer.Serialize(Scp035.Singleton.Config.Scp035Role)}");

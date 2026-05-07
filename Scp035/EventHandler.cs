@@ -34,17 +34,34 @@ public class EventHandler : CustomEventsHandler
     public static void OnPlayersSpawned()
     {
         var cfg = Cfg;
-        if (cfg == null || cfg.DisableSpawning)
+        if (cfg == null)
+            return;
+
+        var players = Player.ReadyList.Where(p => !p.IsSCP && p.IsAlive).ToList();
+        var totalPlayerCount = Player.ReadyList.Count(p => p.IsAlive);
+        LogManager.Debug(
+            $"SCP-035 spawn check: {players.Count} eligible players, {totalPlayerCount} total alive, minimum required: {cfg.MinimumPlayers}, chance: {cfg.SpawnChance}%.");
+
+        var conditionsMet = totalPlayerCount >= cfg.MinimumPlayers && Random.Range(0, 100) < cfg.SpawnChance;
+
+        if (cfg.DisableSpawning)
         {
-            LogManager.Debug("SCP-035 spawning is disabled in config, skipping spawn check.");
+            if (!cfg.DisableLocker && !conditionsMet)
+            {
+                LogManager.Debug("Locker spawn conditions not met, destroying locker pickup.");
+                if (_lockerPickup == null)
+                    return;
+                _lockerPickup.Destroy();
+                _lockerPickup = null;
+            }
+            else
+            {
+                LogManager.Debug("SCP-035 spawning is disabled in config, skipping spawn check.");
+            }
             return;
         }
 
-        var players = Player.ReadyList.Where(p => !p.IsSCP && p.IsAlive).ToList();
-        LogManager.Debug(
-            $"SCP-035 spawn check: {players.Count} eligible players, minimum required: {cfg.MinimumPlayers}, chance: {cfg.SpawnChance}%.");
-
-        if (players.Count < cfg.MinimumPlayers || Random.Range(0, 100) >= cfg.SpawnChance)
+        if (!conditionsMet)
             return;
 
         LogManager.Debug("SCP-035 will be spawned this round.");

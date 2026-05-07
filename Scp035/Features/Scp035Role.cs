@@ -13,6 +13,7 @@ using UncomplicatedCustomRoles.API.Enums;
 using UncomplicatedCustomRoles.API.Features;
 using UncomplicatedCustomRoles.API.Features.Behaviour;
 using UncomplicatedCustomRoles.API.Features.CustomModules;
+using UncomplicatedCustomRoles.Extensions;
 using UncomplicatedCustomRoles.Manager;
 using UnityEngine;
 using YamlDotNet.Serialization;
@@ -133,7 +134,7 @@ public class Scp035Role : EventCustomRole
             if (scp1344 as Scp1344Item is { } scp1344Item)
                 scp1344Item.Status = Scp1344Status.Active;
             if (!EventHandler.Scp035Serials.ContainsKey(scp1344.Serial))
-                EventHandler.Scp035Serials.Add(scp1344.Serial, (Scp035.Singleton.Config?.MaxLifetimePerMask ?? 3) - 1);
+                EventHandler.Scp035Serials.Add(scp1344.Serial, Scp035.Singleton.Config.MaxLifetimePerMask - 1);
         }
 
         var savedItem = ItemType.None;
@@ -197,6 +198,9 @@ public class Scp035Role : EventCustomRole
 
     public override void OnSearchPickupRequest(PlayerSearchingPickupEventArgs ev)
     {
+        if (!ev.Player.TryGetSummonedInstance(out var role) || role.Role.Id != Id)
+            return;
+        
         if (ev.Pickup.Type == ItemType.SCP1344)
             ev.IsAllowed = false;
 
