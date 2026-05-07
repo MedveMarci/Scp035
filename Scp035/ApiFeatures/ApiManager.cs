@@ -47,33 +47,35 @@ public static class ApiManager
                 $"{ApiBase}/api/v1/plugin/{Uri.EscapeDataString(name)}/version/{Uri.EscapeDataString(currentVersion.ToString())}");
         var (currentStatusCode, currentMessage) = ParseApiResponse(currentVersionResp);
         if (currentStatusCode != HttpStatusCode.OK)
-            LogManager.Debug($"Recall check failed: {currentStatusCode} - {currentMessage}");
-
-
-        var recallRoot = JsonDocument.Parse(currentVersionResp).RootElement;
-
-        if (recallRoot.TryGetProperty("is_recalled", out var isRecalledProp) &&
-            isRecalledProp.ValueKind == JsonValueKind.True)
         {
-            var recallReason = recallRoot.TryGetProperty("recall_reason", out var reasonProp) &&
-                               reasonProp.ValueKind == JsonValueKind.String
-                ? reasonProp.GetString()
-                : "No reason provided.";
-            LogManager.Error(
-                $"This version of {name} has been recalled.\nPlease update to {latestRemoteVersion} version as soon as possible.\nReason: {recallReason}",
-                ConsoleColor.DarkRed);
-            return;
+            LogManager.Debug($"Recall check failed: {currentStatusCode} - {currentMessage}");
+        }
+        else
+        {
+            var recallRoot = JsonDocument.Parse(currentVersionResp).RootElement;
+
+            if (recallRoot.TryGetProperty("is_recalled", out var isRecalledProp) &&
+                isRecalledProp.ValueKind == JsonValueKind.True)
+            {
+                var recallReason = recallRoot.TryGetProperty("recall_reason", out var reasonProp) &&
+                                   reasonProp.ValueKind == JsonValueKind.String
+                    ? reasonProp.GetString()
+                    : "No reason provided.";
+                LogManager.Error(
+                    $"This version of {name} has been recalled.\nPlease update to {latestRemoteVersion} version as soon as possible.\nReason: {recallReason}",
+                    ConsoleColor.DarkRed);
+                return;
+            }
         }
 
         if (outdated)
             LogManager.Info(
-                $"A new of {name} version is available: {version} (current {currentVersion}). {GetDownloadUrl(root)}",
+                $"A new version of {name} is available: {version} (current {currentVersion}). {GetDownloadUrl(root)}",
                 ConsoleColor.DarkRed);
         else
             LogManager.Info(
                 $"Thanks for using {name} v{currentVersion}. To get support and latest news, join to my Discord Server: https://discord.gg/KmpA8cfaSA",
                 ConsoleColor.Blue);
-
 
         if (!currentIsNewerThanRemote) return;
         LogManager.Info(

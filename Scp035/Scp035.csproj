@@ -1,79 +1,61 @@
-<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-    <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props"
-            Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')"/>
+<Project Sdk="Microsoft.NET.Sdk">
+
     <PropertyGroup>
-        <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-        <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-        <ProjectGuid>{2854C29A-2689-4F66-AAB9-98512C3691B5}</ProjectGuid>
-        <OutputType>Library</OutputType>
-        <AppDesignerFolder>Properties</AppDesignerFolder>
-        <RootNamespace>Scp035</RootNamespace>
+        <TargetFramework>net48</TargetFramework>
         <AssemblyName>Scp035</AssemblyName>
-        <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
-        <FileAlignment>512</FileAlignment>
+        <RootNamespace>Scp035</RootNamespace>
         <LangVersion>latest</LangVersion>
-    </PropertyGroup>
-    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
-        <DebugType>pdbonly</DebugType>
-        <Optimize>true</Optimize>
-        <DefineConstants>TRACE</DefineConstants>
-        <ErrorReport>prompt</ErrorReport>
-        <WarningLevel>4</WarningLevel>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <OutputPath>bin\x64\Release\</OutputPath>
         <PlatformTarget>x64</PlatformTarget>
+        <Platforms>x64</Platforms>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn);1591</NoWarn>
+        <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+        <Nullable>disable</Nullable>
+        <Configurations>Debug;Release</Configurations>
     </PropertyGroup>
-    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x64' ">
+
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
         <DebugSymbols>true</DebugSymbols>
         <DebugType>embedded</DebugType>
         <Optimize>false</Optimize>
         <DefineConstants>DEBUG;TRACE</DefineConstants>
-        <ErrorReport>prompt</ErrorReport>
-        <WarningLevel>4</WarningLevel>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <OutputPath>bin\x64\Debug\</OutputPath>
-        <PlatformTarget>x64</PlatformTarget>
     </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+        <DebugType>pdbonly</DebugType>
+        <Optimize>true</Optimize>
+        <DefineConstants>TRACE</DefineConstants>
+        <OutputPath>bin\x64\Release\</OutputPath>
+    </PropertyGroup>
+
     <ItemGroup>
-        <Reference Include="System"/>
-        <Reference Include="System.Core"/>
-        <Reference Include="System.Data"/>
-        <Reference Include="System.Xml"/>
-        <Reference Include="Assembly-CSharp" HintPath="$(sl_references)\Assembly-CSharp-Publicized.dll"/>
+        <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.3" PrivateAssets="all" />
+        <PackageReference Include="Lib.Harmony" Version="2.4.2"/>
+        <PackageReference Include="Northwood.LabAPI" Version="1.1.6.1"/>
+        <PackageReference Include="System.Net.Http" Version="4.3.4"/>
+        <PackageReference Include="System.Text.Json" Version="10.0.7" />
+        <PackageReference Include="YamlDotNet" Version="11.0.1"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Reference Include="Assembly-CSharp" HintPath="$(sl_references)\Assembly-CSharp.dll" Publicize="true"/>
         <Reference Include="Assembly-CSharp-firstpass" HintPath="$(sl_references)\Assembly-CSharp-firstpass.dll"/>
         <Reference Include="CommandSystem.Core" HintPath="$(sl_references)\CommandSystem.Core.dll"/>
         <Reference Include="Mirror" HintPath="$(sl_references)\Mirror.dll"/>
-        <Reference Include="UncomplicatedCustomRoles" HintPath="$(labapi_plugins)\UncomplicatedCustomRoles-LabAPI.dll"/>
+        <Reference Include="UncomplicatedCustomRoles" HintPath="$(labapi_plugins)\UncomplicatedCustomRoles.dll"/>
         <Reference Include="UnityEngine.CoreModule" HintPath="$(sl_references)\UnityEngine.CoreModule.dll"/>
         <Reference Include="LabApi" HintPath="$(sl_references)\LabApi.dll"/>
         <Reference Include="NorthwoodLib" HintPath="$(sl_references)\NorthwoodLib.dll"/>
-        <Reference Include="UnityEngine.PhysicsModule" HintPath="$(sl_references)\UnityEngine.PhysicsModule.dll"/>
     </ItemGroup>
+    
     <ItemGroup>
         <Content Include="..\README.md" Link="README.md"/>
         <Content Include="..\LICENSE" Link="LICENSE"/>
     </ItemGroup>
-    <ItemGroup>
-        <PackageReference Include="Lib.Harmony" Version="2.4.2"/>
-        <PackageReference Include="System.Net.Http" Version="4.3.4"/>
-        <PackageReference Include="System.Text.Json" Version="10.0.2"/>
-        <PackageReference Include="YamlDotNet" Version="11.0.1"/>
-    </ItemGroup>
-    <ItemGroup>
-        <Compile Include="ApiFeatures\BearmanLogsCommand.cs"/>
-        <Compile Include="Commands\SpawnScp035.cs"/>
-        <Compile Include="Config.cs"/>
-        <Compile Include="EventHandler.cs"/>
-        <Compile Include="Features\Environment.cs"/>
-        <Compile Include="Features\Scp035Role.cs"/>
-        <Compile Include="ApiFeatures\ApiManager.cs"/>
-        <Compile Include="ApiFeatures\LogManager.cs"/>
-        <Compile Include="Plugin.cs"/>
-        <Compile Include="Properties\AssemblyInfo.cs"/>
-    </ItemGroup>
-    <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets"/>
+
     <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-        <Exec Command="copy /Y $(TargetPath) &quot;$(LABAPI_PLUGINS)&quot;"/>
+        <Exec Command="xcopy &quot;$(TargetPath)&quot; &quot;%appdata%\SCP Secret Laboratory\LabAPI\plugins\global&quot; /y"/>
     </Target>
 </Project>

@@ -13,6 +13,7 @@ using UncomplicatedCustomRoles.API.Enums;
 using UncomplicatedCustomRoles.API.Features;
 using UncomplicatedCustomRoles.API.Features.Behaviour;
 using UncomplicatedCustomRoles.API.Features.CustomModules;
+using UncomplicatedCustomRoles.Extensions;
 using UncomplicatedCustomRoles.Manager;
 using UnityEngine;
 using YamlDotNet.Serialization;
@@ -22,7 +23,7 @@ namespace Scp035.Features;
 #nullable enable
 public class Scp035Role : EventCustomRole
 {
-    [YamlIgnore] private SummonedCustomRole? _lastAliveRole;
+    [YamlIgnore] private static SummonedCustomRole? _lastAliveRole;
     [YamlIgnore] public override int Id { get; set; } = 35;
 
     [YamlIgnore] public override string Name { get; set; } = "<color=#C50000>SCP-035</color>";
@@ -130,10 +131,10 @@ public class Scp035Role : EventCustomRole
             $"Pickup: {(Pickup != null ? "Pickup" : "null")}, SCP-1344 Item: {(scp1344 != null ? scp1344.ToString() : "null")}");
         if (scp1344 != null)
         {
-            if (scp1344 is Scp1344Item scp1344Item)
+            if (scp1344 as Scp1344Item is { } scp1344Item)
                 scp1344Item.Status = Scp1344Status.Active;
             if (!EventHandler.Scp035Serials.ContainsKey(scp1344.Serial))
-                EventHandler.Scp035Serials.Add(scp1344.Serial, (Scp035.Singleton.Config?.MaxLifetimePerMask ?? 3) - 1);
+                EventHandler.Scp035Serials.Add(scp1344.Serial, Scp035.Singleton.Config.MaxLifetimePerMask - 1);
         }
 
         var savedItem = ItemType.None;
@@ -160,7 +161,7 @@ public class Scp035Role : EventCustomRole
             writer.WriteVector3(player.Position);
         }
 
-        player.RemoveItem(scp1509Item.Type);
+        player.RemoveItem(scp1509Item);
 
         if (savedItem != ItemType.None)
             player.AddItem(savedItem);
@@ -197,6 +198,9 @@ public class Scp035Role : EventCustomRole
 
     public override void OnSearchPickupRequest(PlayerSearchingPickupEventArgs ev)
     {
+        if (!ev.Player.TryGetSummonedInstance(out var role) || role.Role.Id != Id)
+            return;
+        
         if (ev.Pickup.Type == ItemType.SCP1344)
             ev.IsAllowed = false;
 
