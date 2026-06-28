@@ -1,10 +1,12 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using CustomPlayerEffects;
 using InventorySystem.Items.Autosync;
 using InventorySystem.Items.Scp1509;
 using InventorySystem.Items.Usables.Scp1344;
 using LabApi.Events.Arguments.PlayerEvents;
 using LabApi.Features.Wrappers;
+using LabApi.Loader.Features.Yaml;
 using MEC;
 using Mirror;
 using PlayerRoles;
@@ -117,8 +119,15 @@ public class Scp035Role : EventCustomRole
     [YamlIgnore] public override bool IgnoreSpawnSystem { get; set; } = true;
     [YamlIgnore] public Pickup? Pickup { get; set; }
 
+    public Scp035Role Clone()
+    {
+        var yaml = YamlConfigParser.Serializer.Serialize(this);
+        return YamlConfigParser.Deserializer.Deserialize<Scp035Role>(yaml);
+    }
+
     public override void OnSpawned(SummonedCustomRole role)
     {
+        role.Player.DisableEffect<SpawnProtected>();
         LogManager.Debug("Spawning SCP-035 role for player " + role.Player.Nickname);
         role.AddModule(typeof(SilentAnnouncer));
         role.AddModule(typeof(ColorfulNickname), new Dictionary<string, object> { { "color", "#C50000" } });
@@ -127,6 +136,9 @@ public class Scp035Role : EventCustomRole
         player.InfoArea &= ~PlayerInfoArea.UnitName;
         player.InfoArea &= ~PlayerInfoArea.PowerStatus;
         var scp1344 = Pickup != null ? player.AddItem(Pickup) : player.AddItem(ItemType.SCP1344);
+        if (scp1344 == null)
+            Pickup?.Destroy();
+        Pickup = null;
         LogManager.Debug(
             $"Pickup: {(Pickup != null ? "Pickup" : "null")}, SCP-1344 Item: {(scp1344 != null ? scp1344.ToString() : "null")}");
         if (scp1344 != null)
