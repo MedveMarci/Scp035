@@ -69,6 +69,12 @@ public class EventHandler : CustomEventsHandler
         if (cfg.SelectFromScps)
         {
             var scpPlayers = Player.ReadyList.Where(p => p.IsSCP && p.IsAlive).ToList();
+            if (scpPlayers.Count == 0 && players.Count == 0)
+            {
+                LogManager.Debug("No eligible players to become SCP-035, skipping spawn.");
+                return;
+            }
+
             selectedPlayer = scpPlayers.Count == 0
                 ? players[Random.Range(0, players.Count)]
                 : scpPlayers[Random.Range(0, scpPlayers.Count)];
@@ -76,6 +82,12 @@ public class EventHandler : CustomEventsHandler
         }
         else
         {
+            if (players.Count == 0)
+            {
+                LogManager.Debug("No eligible non-SCP players to become SCP-035, skipping spawn.");
+                return;
+            }
+
             selectedPlayer = players[Random.Range(0, players.Count)];
             LogManager.Debug("Selecting SCP-035 from non-SCP players.");
         }
@@ -183,15 +195,13 @@ public class EventHandler : CustomEventsHandler
         else
         {
             LogManager.Debug($"Directly assigning SCP-035 role to player with role: {role}");
-            var scp035Role = Cfg?.Scp035Role ?? new Scp035Role();
+            var scp035Role = (Cfg?.Scp035Role ?? new Scp035Role()).Clone();
             scp035Role.Id = 5000 + (int)role + player.PlayerId + 35;
             scp035Role.Role = role;
             scp035Role.RoleAppearance = role;
+            
             if (pickup != null)
-            {
                 scp035Role.Pickup = pickup;
-                pickup.Destroy();
-            }
 
             CustomRole.Register(scp035Role);
             player.SetCustomRole(scp035Role);
@@ -234,7 +244,7 @@ public class EventHandler : CustomEventsHandler
         }
 
         LogManager.Debug($"Assigning SCP-035 role to player after spawn effect with role: {role}");
-        var scp035Role = Cfg?.Scp035Role ?? new Scp035Role();
+        var scp035Role = (Cfg?.Scp035Role ?? new Scp035Role()).Clone();
         scp035Role.Id = 5000 + (int)role + player.PlayerId + 35;
         scp035Role.Role = role;
         scp035Role.RoleAppearance = role;
@@ -308,8 +318,7 @@ public class EventHandler : CustomEventsHandler
 
     public override void OnServerWaitingForPlayers()
     {
-        ApiManager.CheckForUpdates();
-        LogManager.ClearHistory();
+        VersionManager.CheckForUpdates();
 
         _locker = null;
         _lockerPickup = null;
