@@ -1,7 +1,6 @@
-﻿using System;
-using System.Net;
+using System;
 using System.Text.Json;
-using System.Threading.Tasks;
+using Scp035.ApiFeatures.Net;
 
 namespace Scp035.ApiFeatures;
 
@@ -9,128 +8,110 @@ internal static class VersionManager
 {
     private const string ApiBase = "https://bearmanapi.hu";
     private const string SupportUrl = "https://discord.gg/KmpA8cfaSA";
-    private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(8);
 
     internal static void CheckForUpdates()
     {
-        Task.Run(async () =>
-        {
-            var name = Scp035.Singleton.Name;
-            var current = Scp035.Singleton.Version;
+        Scp035 plugin = Scp035.Singleton;
 
-            try
-            {
-                var latest = await FetchLatestVersion(name);
-                if (latest is null)
-                    return;
+        if (plugin is null)
+            return;
 
-                if (await IsCurrentVersionRecalled(name, current, latest.Value.Version))
-                    return;
+        string name = plugin.Name;
+        Version current = plugin.Version;
 
-                ReportVersionStatus(name, current, latest.Value.Version, latest.Value.DownloadUrl);
-            }
-            catch (TimeoutException)
-            {
-                LogManager.Error("Version check timed out.");
-            }
-            catch (Exception ex)
-            {
-                LogManager.Error("Version check failed.");
-                LogManager.Debug($"Version check exception:\n{ex}");
-            }
-        });
+        WebQuery.Get($"{ApiBase}/api/v1/plugin/{Uri.EscapeDataString(name)}/latest",
+            response => OnLatestReceived(response, name, current));
     }
 
-    private static async Task<(Version Version, string DownloadUrl)?> FetchLatestVersion(string name)
+    private static void OnLatestReceived(HttpResponse response, string name, Version current)
     {
-        var resp = await WithTimeout(
-            HttpQuery.GetAsync($"{ApiBase}/api/v1/plugin/{Uri.EscapeDataString(name)}/latest"));
+        if (!TryParse(response, "Version check failed", out JsonElement root))
+            return;
 
-        var (code, _) = ParseResponse(resp);
-        if (code != HttpStatusCode.OK)
+        if (!root.TryGetProperty("version", out JsonElement versionProperty) ||
+            versionProperty.ValueKind != JsonValueKind.String ||
+            !Version.TryParse(versionProperty.GetString() ?? string.Empty, out Version latest))
         {
-            LogManager.Error($"Version check failed: {code}");
-            return null;
+            LogManager.Error("Version check: the response format is invalid.");
+            return;
         }
 
-        var root = JsonDocument.Parse(resp).RootElement;
-        if (!root.TryGetProperty("version", out var vProp) || vProp.ValueKind != JsonValueKind.String ||
-            !Version.TryParse(vProp.GetString() ?? string.Empty, out var latest))
+        string downloadUrl = GetDownloadUrl(root);
+
+        WebQuery.Get(
+            $"{ApiBase}/api/v1/plugin/{Uri.EscapeDataString(name)}/version/{Uri.EscapeDataString(current.ToString())}",
+            recall => OnRecallReceived(recall, name, current, latest, downloadUrl));
+    }
+
+    private static void OnRecallReceived(HttpResponse response, string name, Version current, Version latest,
+        string downloadUrl)
+    {
+        if (TryParse(response, "Recall check failed", out JsonElement root) &&
+            root.TryGetProperty("is_recalled", out JsonElement recalled) && recalled.ValueKind == JsonValueKind.True)
         {
-            LogManager.Error("Version check: invalid response format.");
-            return null;
+            string reason = root.TryGetProperty("recall_reason", out JsonElement reasonProperty) &&
+                            reasonProperty.ValueKind == JsonValueKind.String
+                ? reasonProperty.GetString()
+                : "No reason provided.";
+
+            LogManager.Error(
+                $"This version of {name} has been recalled, update to {latest} as soon as possible.\nReason: {reason}",
+                ConsoleColor.DarkRed);
+
+            return;
         }
 
-        return (latest, GetDownloadUrl(root));
+        Report(name, current, latest, downloadUrl);
     }
 
-    private static async Task<bool> IsCurrentVersionRecalled(string name, Version current, Version latest)
-    {
-        var resp = await WithTimeout(
-            HttpQuery.GetAsync(
-                $"{ApiBase}/api/v1/plugin/{Uri.EscapeDataString(name)}/version/{Uri.EscapeDataString(current.ToString())}"));
-
-        var root = JsonDocument.Parse(resp).RootElement;
-        if (!root.TryGetProperty("is_recalled", out var recalled) || recalled.ValueKind != JsonValueKind.True)
-            return false;
-
-        var reason = root.TryGetProperty("recall_reason", out var r) && r.ValueKind == JsonValueKind.String
-            ? r.GetString()
-            : "No reason provided.";
-
-        LogManager.Error(
-            $"This version of {name} has been recalled! Update to {latest} ASAP.\nReason: {reason}",
-            ConsoleColor.DarkRed);
-        return true;
-    }
-
-    private static void ReportVersionStatus(string name, Version current, Version latest, string downloadUrl)
+    private static void Report(string name, Version current, Version latest, string downloadUrl)
     {
         if (latest > current)
-            LogManager.Info(
-                $"New version of {name} available: {latest} (you have {current}). {downloadUrl}".TrimEnd(),
+            LogManager.Info($"A new version of {name} is available: {latest} (you have {current}). {downloadUrl}".TrimEnd(),
                 ConsoleColor.DarkRed);
         else if (current > latest)
             LogManager.Info(
                 $"You are running a newer version of {name} ({current}) than {latest}. " +
-                "This is a development/pre-release build and it can contain errors or bugs.",
-                ConsoleColor.DarkMagenta);
+                "This is a development build and it can contain errors or bugs.", ConsoleColor.DarkMagenta);
         else
             LogManager.Info($"Thank you for using {name} v{current}. Support: {SupportUrl}", ConsoleColor.Blue);
     }
 
-    private static async Task<string> WithTimeout(Task<string> task)
+    private static bool TryParse(HttpResponse response, string context, out JsonElement root)
     {
-        var completed = await Task.WhenAny(task, Task.Delay(RequestTimeout));
-        if (completed != task)
-            throw new TimeoutException();
-        return await task;
-    }
+        root = default;
 
-    private static (HttpStatusCode code, string? msg) ParseResponse(string json)
-    {
+        if (!response.IsSuccessful)
+        {
+            LogManager.Error($"{context}: {response.Error ?? response.Code.ToString()}");
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(response.Body))
+        {
+            LogManager.Error($"{context}: the response is empty.");
+            return false;
+        }
+
         try
         {
-            var root = JsonDocument.Parse(json).RootElement;
-            var code = root.TryGetProperty("status", out var s) && s.ValueKind == JsonValueKind.Number
-                ? (HttpStatusCode)s.GetInt32()
-                : HttpStatusCode.InternalServerError;
-            var msg = root.TryGetProperty("message", out var m) && m.ValueKind == JsonValueKind.String
-                ? m.GetString()
-                : null;
-            return (code, msg);
+            root = JsonDocument.Parse(response.Body).RootElement;
+            return true;
         }
-        catch
+        catch (Exception exception)
         {
-            return (HttpStatusCode.InternalServerError, null);
+            LogManager.Error($"{context}: the response could not be parsed.");
+            LogManager.Debug(exception.ToString());
+
+            return false;
         }
     }
 
     private static string GetDownloadUrl(JsonElement root)
     {
-        return root.TryGetProperty("download_url", out var d) && d.ValueKind == JsonValueKind.String &&
-               !string.IsNullOrEmpty(d.GetString())
-            ? $"Download: {d.GetString()}"
+        return root.TryGetProperty("download_url", out JsonElement property) && property.ValueKind == JsonValueKind.String &&
+               !string.IsNullOrEmpty(property.GetString())
+            ? $"Download: {property.GetString()}"
             : string.Empty;
     }
 }
