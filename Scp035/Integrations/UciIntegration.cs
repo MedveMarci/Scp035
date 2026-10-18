@@ -12,7 +12,9 @@ internal static class UciIntegration
 
     private const string SummonedCustomItem = "UncomplicatedCustomItems.API.Features.SummonedCustomItem";
 
-    private const string CustomItem = "UncomplicatedCustomItems.API.Interfaces.ICustomItem";
+    private const string CustomItemInterface = "UncomplicatedCustomItems.API.Interfaces.ICustomItem";
+
+    private const string CustomItemClass = "UncomplicatedCustomItems.API.Features.CustomItem";
 
     private const string SummonedApiCustomItem = "UncomplicatedCustomItems.API.Features.CustomItemAPI.SummonedAPICustomItem";
 
@@ -51,8 +53,9 @@ internal static class UciIntegration
         {
             _getSummoned = DynamicInvoke.GetMethod(PluginName, $"{SummonedCustomItem}.Get", methodCounter: 1, requiredParamNames: SerialParameter);
             _readSummonedItem = DynamicInvoke.GetMethod(PluginName, $"{SummonedCustomItem}.CustomItem_get");
-            _itemId = DynamicInvoke.GetMethod(PluginName, $"{CustomItem}.Id_get");
-            _itemName = DynamicInvoke.GetMethod(PluginName, $"{CustomItem}.Name_get");
+            string customItem = assembly.GetType(CustomItemInterface, false) is not null ? CustomItemInterface : CustomItemClass;
+            _itemId = DynamicInvoke.GetMethod(PluginName, $"{customItem}.Id_get");
+            _itemName = DynamicInvoke.GetMethod(PluginName, $"{customItem}.Name_get");
 
             _getApiSummoned = DynamicInvoke.GetMethod(PluginName, $"{SummonedApiCustomItem}.Get", methodCounter: 1, requiredParamNames: SerialParameter);
             _readSummonedApiItem = assembly.GetType(SummonedApiCustomItem, false)?.GetField("CustomItem", BindingFlags.Public | BindingFlags.Instance);

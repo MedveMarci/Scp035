@@ -33,9 +33,10 @@
 
     <ItemGroup>
         <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.3" PrivateAssets="all"/>
+        <PackageReference Include="Lib.Harmony" Version="2.4.2"/>
         <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all"/>
         <PackageReference Include="Northwood.LabAPI" Version="1.1.7"/>
-        <PackageReference Include="System.Text.Json" Version="10.0.9"/>
+        <PackageReference Include="System.Text.Json" Version="9.0.4"/>
     </ItemGroup>
 
     <ItemGroup>
@@ -54,11 +55,11 @@
     <ItemGroup>
         <Content Include="..\README.md" Link="README.md"/>
         <Content Include="..\LICENSE" Link="LICENSE"/>
+        <Content Include="..\CHANGELOG.md" Link="CHANGELOG.md"/>
     </ItemGroup>
 
-    <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="'$(OS)' == 'Windows_NT' And '$(APPDATA)' != ''">
-        <MakeDir Directories="$(APPDATA)\SCP Secret Laboratory\LabAPI\plugins\global"/>
-        <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(APPDATA)\SCP Secret Laboratory\LabAPI\plugins\global"
-              SkipUnchangedFiles="true" ContinueOnError="true"/>
+    <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="'$(OS)' == 'Windows_NT' and '$(CI)' != 'true'">
+        <Exec Command="xcopy &quot;$(TargetPath)&quot; &quot;$(LABAPI_PLUGINS)&quot; /y"/>
     </Target>
+
 </Project>

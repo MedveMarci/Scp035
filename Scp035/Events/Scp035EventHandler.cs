@@ -27,6 +27,7 @@ internal sealed class Scp035EventHandler : CustomEventsHandler
         Scp035.Singleton.Config.Validate();
 
         UciIntegration.Initialise();
+        CedModIntegration.Initialise();
 
         if (Scp035.Singleton.Config.DisableSpawning && Scp035.Singleton.Config.DisableLocker)
             return;
@@ -122,7 +123,8 @@ internal sealed class Scp035EventHandler : CustomEventsHandler
             if (!MaskRegistry.TryBeginClaim(serial))
                 return;
 
-            Scp035Manager.Spawn(player, false, false, MaskPedestal.Detach());
+            if (Scp035Manager.Spawn(player, false, false, MaskPedestal.Detach()))
+                Scp035Manager.PlayPickupAnnouncement();
             return;
         }
 
@@ -142,7 +144,8 @@ internal sealed class Scp035EventHandler : CustomEventsHandler
 
         MaskRegistry.SetLives(serial, lives - 1);
         Particles.Stop(pickup.GameObject);
-        Scp035Manager.Spawn(player, false, false, pickup);
+        if (Scp035Manager.Spawn(player, false, false, pickup))
+            Scp035Manager.PlayPickupAnnouncement();
     }
 
     public override void OnPlayerSearchingPickup(PlayerSearchingPickupEventArgs ev)

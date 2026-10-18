@@ -6,6 +6,7 @@ using LabApi.Features.Wrappers;
 using MEC;
 using PlayerRoles;
 using Scp035.ApiFeatures;
+using Scp035.Configs;
 using UncomplicatedCustomRoles.API.Enums;
 using UncomplicatedCustomRoles.API.Features;
 using UncomplicatedCustomRoles.Extensions;
@@ -21,16 +22,6 @@ internal static class Scp035Manager
     private const float IntroDuration = 3f;
 
     private static readonly Dictionary<int, Scp035Role> Registered = new();
-
-    internal static IEnumerable<Player> Hosts
-    {
-        get
-        {
-            foreach (Player player in Player.ReadyList)
-                if (IsScp035(player))
-                    yield return player;
-        }
-    }
 
     internal static bool IsScp035(Player player)
     {
@@ -161,6 +152,16 @@ internal static class Scp035Manager
         Timing.KillCoroutines($"Scp035-{player.UserId}");
         Timing.RunCoroutine(IntroCoroutine(player, appearance), $"Scp035-{player.UserId}");
         return true;
+    }
+
+    internal static void PlayPickupAnnouncement()
+    {
+        Config config = Scp035.Singleton.Config;
+        if (!config.EnablePickupAnnouncement || string.IsNullOrWhiteSpace(config.PickupAnnouncement))
+            return;
+
+        LogManager.Debug("Playing the SCP-035 pickup announcement.");
+        Announcer.Message(config.PickupAnnouncement, config.PickupAnnouncementSubtitles ?? string.Empty);
     }
 
     internal static void Release(Scp035Role role)
