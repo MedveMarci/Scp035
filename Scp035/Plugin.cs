@@ -26,7 +26,7 @@ public sealed class Scp035 : Plugin<Config>
 
     public override string Author => "MedveMarci";
 
-    public override Version Version => new(2, 0, 0);
+    public override Version Version => new(2, 1, 0);
 
     public override Version RequiredApiVersion => LabApiProperties.CurrentVersion;
 
@@ -50,6 +50,7 @@ public sealed class Scp035 : Plugin<Config>
 
         Config.Validate();
         UciIntegration.Initialise();
+        CedModIntegration.Initialise();
 
         RoleAssigner.OnPlayersSpawned += Scp035Manager.OnPlayersSpawned;
         CustomHandlersManager.RegisterEventsHandler(_eventHandler);
@@ -62,6 +63,7 @@ public sealed class Scp035 : Plugin<Config>
         {
             RoleAssigner.OnPlayersSpawned -= Scp035Manager.OnPlayersSpawned;
             CustomHandlersManager.UnregisterEventsHandler(_eventHandler);
+            CedModIntegration.Disable();
             _hooked = false;
         }
 

@@ -46,6 +46,15 @@ public sealed class Config
     [Description("Whether to play a CASSIE announcement when SCP-035 dies for good\n# (its mask ran out of lives, or it was the last SCP alive).\n# The announcement itself is played by the 'CustomScpAnnouncer' custom flag of the SCP-035 role,\n# so the announced name can be changed under 'scp035_role' -> 'custom_flags'.")]
     public bool EnableTerminationAnnouncement { get; set; } = true;
 
+    [Description("Whether to play a CASSIE announcement when someone picks up the SCP-035 mask and becomes SCP-035.")]
+    public bool EnablePickupAnnouncement { get; set; } = true;
+
+    [Description("The CASSIE message played when the SCP-035 mask is picked up.")]
+    public string PickupAnnouncement { get; set; } = "SCP 0 3 5 CONTAINMENT BREACH DETECTED";
+
+    [Description("Subtitles shown for the pickup announcement. Leave empty to show the CASSIE message itself.")]
+    public string PickupAnnouncementSubtitles { get; set; } = "SCP-035 containment breach detected.";
+
     [Description("Default role SCP-035 players will turn into.")]
     public RoleTypeId DefaultScp035Role { get; set; } = RoleTypeId.ClassD;
 

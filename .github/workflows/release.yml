@@ -1,0 +1,44 @@
+name: Release
+
+on:
+  release:
+    types: [ published ]
+
+permissions:
+  contents: write
+
+env:
+  PROJECT: Scp035
+  PLUGINS: ${{ github.workspace }}/Plugins
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Download SCP:SL references
+        id: references
+        uses: Axwabo/scpsl-references-downloader@v1
+
+      - name: Download UncomplicatedCustomRoles
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release download -R UncomplicatedCustomServer/UncomplicatedCustomRoles -p UncomplicatedCustomRoles.dll -D "$PLUGINS"
+
+      - name: Build
+        env:
+          sl_references: ${{ steps.references.outputs.target }}
+          labapi_plugins: ${{ env.PLUGINS }}
+        run: dotnet build ${{ env.PROJECT }}/${{ env.PROJECT }}.csproj -c Release -o Out
+
+      - name: Upload assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Out/${{ env.PROJECT }}.dll
